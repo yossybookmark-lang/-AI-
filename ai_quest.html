@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中学英語 AI Quest - 問題演習＆自動作成アプリ</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700;900&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            700: '#075985',
+                        },
+                        accent: {
+                            500: '#f59e0b',
+                            600: '#d97706',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Zen Maru Gothic', 'Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Zen Maru Gothic', 'Inter', sans-serif;
+            background-color: #f4f6f9;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col justify-between text-base">
+
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-sky-600 via-indigo-600 to-purple-600 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-5xl mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('quiz')">
+                <div class="bg-white text-sky-600 w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-2xl shadow">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-xl leading-tight tracking-wide">中学英語 AI Quest</h1>
+                    <p class="text-xs md:text-sm text-sky-100">問題演習 & AI自動問題作成アプリ</p>
+                </div>
+            </div>
+
+            <!-- Tab Navigation Buttons -->
+            <nav class="flex items-center space-x-1.5 bg-white/10 p-1.5 rounded-xl backdrop-blur-sm text-sm md:text-base">
+                <button id="tab-btn-quiz" onclick="switchTab('quiz')" class="px-3.5 py-2 rounded-lg font-bold transition flex items-center gap-2 bg-white text-sky-700 shadow-sm">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                    <span>問題を解く</span>
+                </button>
+                <button id="tab-btn-generate" onclick="switchTab('generate')" class="px-3.5 py-2 rounded-lg font-bold transition flex items-center gap-2 text-white hover:bg-white/10">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    <span>AIで問題を作る</span>
+                </button>
+                <button id="tab-btn-tutor" onclick="switchTab('tutor')" class="px-3.5 py-2 rounded-lg font-bold transition flex items-center gap-2 text-white hover:bg-white/10">
+                    <i class="fa-solid fa-robot"></i>
+                    <span>AI先生に質問</span>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="max-w-5xl mx-auto w-full px-4 py-6 md:py-8 flex-grow">
+
+        <!-- TAB 1: QUIZ SOLVER -->
+        <section id="view-quiz" class="space-y-6">
+            <!-- Test Control Bar -->
+            <div class="bg-white rounded-2xl p-4 md:p-5 shadow-sm border border-slate-200/80 flex flex-wrap items-center justify-between gap-4">
+                <div class="flex flex-wrap items-center gap-3">
+                    <span class="bg-sky-100 text-sky-800 px-3.5 py-1.5 rounded-full text-xs md:text-sm font-bold">テスト選択</span>
+                    <select id="test-selector" onchange="loadSelectedTest()" class="bg-slate-50 border border-slate-300 text-slate-800 rounded-xl px-4 py-2 text-sm md:text-base font-medium focus:ring-2 focus:ring-sky-500 outline-none max-w-xs md:max-w-md">
+                        <!-- Options generated dynamically -->
+                    </select>
+                    <button id="delete-test-btn" onclick="deleteCurrentTest()" class="hidden text-xs md:text-sm bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-3 py-2 rounded-xl transition font-bold" title="生成したテストを削除">
+                        <i class="fa-solid fa-trash-can mr-1"></i>削除
+                    </button>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="resetCurrentQuiz()" class="text-xs md:text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-2 rounded-xl transition font-bold">
+                        <i class="fa-solid fa-rotate-right mr-1.5"></i>やり直す
+                    </button>
+                    <span id="score-badge" class="hidden text-sm font-bold px-4 py-2 rounded-xl bg-emerald-100 text-emerald-900 border border-emerald-300">
+                        <i class="fa-solid fa-award mr-1.5 text-amber-500"></i>スコア: <span id="score-val" class="text-xl font-extrabold text-emerald-800">0</span> / 10点
+                    </span>
+                </div>
+            </div>
+
+            <!-- Quiz Main Form Container -->
+            <div id="quiz-container" class="space-y-8">
+                <!-- Dynamically populated questions will go here -->
+            </div>
+
+            <!-- Quiz Action Bar -->
+            <div class="bg-white p-5 rounded-2xl shadow-md border border-slate-200 flex flex-wrap items-center justify-between gap-4">
+                <div class="text-xs md:text-sm text-slate-600 font-medium">
+                    <i class="fa-solid fa-circle-info mr-1 text-sky-600"></i>全問回答したら「採点する」を押してください
+                </div>
+                <button id="submit-quiz-btn" onclick="gradeQuiz()" class="bg-gradient-to-r from-sky-500 via-indigo-600 to-purple-600 hover:opacity-95 text-white font-bold text-base md:text-lg px-8 py-3 rounded-xl shadow-md transition flex items-center gap-2">
+                    <i class="fa-solid fa-check"></i> 採点して解説を見る
+                </button>
+            </div>
+        </section>
+
+        <!-- TAB 2: AI QUESTION GENERATOR -->
+        <section id="view-generate" class="hidden space-y-6">
+            <div class="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200">
+                <div class="flex items-center gap-4 border-b border-slate-100 pb-5 mb-6">
+                    <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center font-bold text-2xl">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800">AIでオリジナル英語演習問題を生成</h2>
+                        <p class="text-xs md:text-sm text-slate-500 mt-1">あなたの学年や苦手な単元に合わせて、Gemini AIが新しい問題セットを自動作成します！</p>
+                    </div>
+                </div>
+
+                <form id="generator-form" onsubmit="generateTestWithAI(event)" class="space-y-6">
+                    <!-- Config Options -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Target Grade -->
+                        <div>
+                            <label class="block text-sm md:text-base font-bold text-slate-700 mb-2">学年・難易度</label>
+                            <select id="gen-grade" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm md:text-base focus:ring-2 focus:ring-sky-500 outline-none">
+                                <option value="中学1〜2年＋現在完了（標準）">中学1〜2年 ＋ 現在完了形（標準）</option>
+                                <option value="中学1〜2年（基礎）">中学1〜2年（基礎・復習メイン）</option>
+                                <option value="中学3年・高校入試レベル（標準〜応用）">中学3年・高校入試レベル（標準〜応用）</option>
+                            </select>
+                        </div>
+
+                        <!-- Target Topic Focus -->
+                        <div>
+                            <label class="block text-sm md:text-base font-bold text-slate-700 mb-2">重点的に出したい文法・テーマ</label>
+                            <select id="gen-focus" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm md:text-base focus:ring-2 focus:ring-sky-500 outline-none">
+                                <option value="現在完了形・熟語・比較">現在完了形 ＆ 重要熟語 ＆ 比較表現</option>
+                                <option value="不定詞・動名詞・Look forなどの連語">不定詞（to do） ＆ 動名詞（-ing） ＆ 重要連語</option>
+                                <option value="受動態・It is ~ to ... 構文">受動態 ＆ It is ... for ~ to ... 構文</option>
+                                <option value="日常会話・SDGs・学校行事">SDGs・清掃活動・学校行事などの対話文</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Additional Requests -->
+                    <div>
+                        <label class="block text-sm md:text-base font-bold text-slate-700 mb-2">追加の希望リクエスト（任意）</label>
+                        <input type="text" id="gen-custom" placeholder="例: make a speech や look forward to などの連語を入れてほしい" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm md:text-base focus:ring-2 focus:ring-sky-500 outline-none">
+                    </div>
+
+                    <!-- Generate Button -->
+                    <div class="pt-2">
+                        <button type="submit" id="gen-btn" class="w-full bg-gradient-to-r from-amber-500 via-orange-500 to-sky-600 hover:opacity-95 text-white font-bold text-base md:text-lg py-3.5 px-6 rounded-xl shadow-md transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-sparkles"></i>
+                            <span>AIに問題を自動生成させる</span>
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Generation Status Loading Spinner -->
+                <div id="gen-loading" class="hidden py-10 text-center space-y-4">
+                    <div class="inline-block relative">
+                        <div class="w-14 h-14 border-4 border-sky-200 border-t-sky-600 rounded-full animate-spin"></div>
+                        <div class="absolute inset-0 flex items-center justify-center text-sky-600 text-sm">
+                            <i class="fa-solid fa-brain"></i>
+                        </div>
+                    </div>
+                    <p class="text-base font-bold text-slate-700 animate-pulse">Gemini AIが問題を考え中...（約5〜10秒）</p>
+                    <p class="text-xs md:text-sm text-slate-500">中学英語の文法規則と重要熟語に沿った問題セットを作成しています。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: AI TUTOR CHAT -->
+        <section id="view-tutor" class="hidden space-y-4">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col h-[650px]">
+                <!-- Chat Header -->
+                <div class="p-4 md:p-5 border-b border-slate-100 flex items-center gap-3 bg-slate-50/80 rounded-t-2xl">
+                    <div class="w-11 h-11 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-lg">
+                        <i class="fa-solid fa-chalkboard-user"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-base">AI英語チューター（先生）</h3>
+                        <p class="text-xs md:text-sm text-slate-500">わからない文法・単語・解説の質問になんでも優しく答えます！</p>
+                    </div>
+                </div>
+
+                <!-- Chat Messages Area -->
+                <div id="chat-messages" class="flex-grow p-4 md:p-5 overflow-y-auto space-y-4 custom-scrollbar text-sm md:text-base">
+                    <div class="flex gap-3">
+                        <div class="w-9 h-9 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-sm flex-shrink-0">
+                            AI
+                        </div>
+                        <div class="bg-indigo-50 text-slate-800 p-4 rounded-2xl rounded-tl-none max-w-[85%] border border-indigo-100 leading-relaxed">
+                            こんにちは！問題でわからなかったところや、「現在完了形の経験と継続の違いを教えて！」といった文法の質問があれば、何でも聞いてね！
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Prompt Buttons -->
+                <div class="px-4 md:px-5 py-2.5 border-t border-slate-100 flex gap-2 overflow-x-auto text-xs md:text-sm">
+                    <button onclick="sendQuickQuestion('現在完了形（have + 過去分詞）の3つの意味を分かりやすく教えて！')" class="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-700 whitespace-nowrap font-medium transition">
+                        💡 現在完了形の3つの意味とは？
+                    </button>
+                    <button onclick="sendQuickQuestion('have been to と have gone to の違いは何ですか？')" class="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-700 whitespace-nowrap font-medium transition">
+                        💡 have been to / have gone to の違い
+                    </button>
+                    <button onclick="sendQuickQuestion('as ~ as の使い方のコツを教えて！')" class="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-700 whitespace-nowrap font-medium transition">
+                        💡 as ~ as の使い方のコツ
+                    </button>
+                </div>
+
+                <!-- Chat Input Form -->
+                <form onsubmit="sendChatMessage(event)" class="p-4 border-t border-slate-100 flex gap-3">
+                    <input type="text" id="chat-input" placeholder="質問を入力してください..." class="flex-grow bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm md:text-base focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <button type="submit" id="chat-send-btn" class="bg-indigo-600 text-white font-bold px-5 py-2.5 rounded-xl shadow hover:bg-indigo-700 transition flex items-center gap-1.5 text-sm md:text-base">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </form>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 text-center py-4 text-xs md:text-sm text-slate-500">
+        <p>中学英語 AI Quest &bull; Powered by Gemini AI API</p>
+    </footer>
+
+    <!-- Toast Notification Modal -->
+    <div id="toast" class="fixed bottom-6 right-6 bg-slate-800 text-white text-xs md:text-sm px-5 py-3.5 rounded-xl shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none z-50 flex items-center gap-2.5 font-medium">
+        <i id="toast-icon" class="fa-solid fa-circle-info text-sky-400 text-base"></i>
+        <span id="toast-msg">メッセージ</span>
+    </div>
+
+    <script>
+        /* Pre-loaded Sample Practice Tests Data */
+        const sampleTests = [
+            {
+                id: "sample-1",
+                title: "【標準】現在完了・重要連語・意見文セット",
+                isCustom: false,
+                q1: [
+                    {
+                        id: 1,
+                        situation: "学校行事の準備での会話",
+                        dialogue: [
+                            "Ken: Have you ever (   ) a speech in front of many people?",
+                            "Taku: No, this is my first time! I'm a little nervous."
+                        ],
+                        options: ["ア make", "イ made", "ウ making", "エ makes"],
+                        correctIndex: 1,
+                        explanation: "現在完了形（経験）の疑問文「これまでに〜したことがありますか」です。Have + 主語 + 過去分詞 の形にするため、make の過去分詞形 made を用います。",
+                        keyPhrases: ["make a speech (スピーチをする)", "for the first time (初めて)"]
+                    },
+                    {
+                        id: 2,
+                        situation: "オンライン英会話のレッスンでの会話",
+                        dialogue: [
+                            "Teacher: Is playing online games as (   ) as reading books?",
+                            "Student: Yes! I think both are very fun and useful."
+                        ],
+                        options: ["ア interesting", "イ more interesting", "ウ most interesting", "エ the most interesting"],
+                        correctIndex: 0,
+                        explanation: "原級比較 <as + 形容詞の原形 + as>（〜と同じくらい…だ）の構文です。as と as の間には原形 interesting を置きます。",
+                        keyPhrases: ["both ... and ... (〜と･･･の両方)"]
+                    },
+                    {
+                        id: 3,
+                        situation: "放課後のクラブ活動での会話",
+                        dialogue: [
+                            "Mika: Mr. Smith asked us (   ) pictures for the school newspaper.",
+                            "Shin: OK, let's take some photos of the soccer team."
+                        ],
+                        options: ["ア take", "イ taking", "ウ to take", "エ took"],
+                        correctIndex: 2,
+                        explanation: "<ask + 人 + to + 動詞の原形>（人に〜するように頼む）という不定詞を使った構文です。",
+                        keyPhrases: ["take a picture (写真を撮る)"]
+                    },
+                    {
+                        id: 4,
+                        situation: "街中での会話",
+                        dialogue: [
+                            "Yuki: What are you doing here, Sora?",
+                            "Sora: I am (   ) my lost umbrella. I left it somewhere around here."
+                        ],
+                        options: ["ア looking at", "イ looking for", "ウ looking forward to", "エ looking after"],
+                        correctIndex: 1,
+                        explanation: "文脈から「なくした傘を探しているところだ」という意味にするため、look for（〜を探す）の進行形 looking for が適切です。",
+                        keyPhrases: ["look for ~ (〜を探す)"]
+                    }
+                ],
+                q2: [
+                    {
+                        id: 1,
+                        situation: "図書室での会話",
+                        dialogue: [
+                            "Lisa: Where is Amy? I haven't ( see ) her today.",
+                            "Kaito: She has already gone back home because she had a headache."
+                        ],
+                        promptWord: "see",
+                        correctAnswer: "seen",
+                        explanation: "現在完了形（完了・結果）の否定文 haven't + 過去分詞 です。see の過去分詞形 seen にします。",
+                        keyPhrases: ["go back to ~ (〜に戻る)"]
+                    },
+                    {
+                        id: 2,
+                        situation: "英語の授業での会話",
+                        dialogue: [
+                            "Teacher: Is it easy for you ( speak ) English?",
+                            "Emi: No, but I practice it every day to become better!"
+                        ],
+                        promptWord: "speak",
+                        correctAnswer: "to speak",
+                        explanation: "<It is + 形容詞 + for 人 + to + 動詞の原形>（人にとって〜することは…だ）の形にします。",
+                        keyPhrases: ["in English (英語で)"]
+                    },
+                    {
+                        id: 3,
+                        situation: "休日の会話",
+                        dialogue: [
+                            "Kota: My family has ( live ) in this town for ten years.",
+                            "Yuta: Wow, so you know a lot of nice places around here!"
+                        ],
+                        promptWord: "live",
+                        correctAnswer: "lived",
+                        explanation: "文末に for ten years（10年間）があるため、過去から現在まで住み続けていることを表す現在完了形（継続）の過去分詞 lived にします。",
+                        keyPhrases: ["live in ~ (〜に住んでいる)", "for a long time (長い間)"]
+                    },
+                    {
+                        id: 4,
+                        situation: "SDGsについての会話",
+                        dialogue: [
+                            "Alex: Are you interested in ( reduce ) plastic waste?",
+                            "Risa: Yes, I always bring my own bottle to school."
+                        ],
+                        promptWord: "reduce",
+                        correctAnswer: "reducing",
+                        explanation: "前置詞 in の後ろには動詞の -ing 形（動名詞）が続きます。reduce（減らす）は末尾の e を消して reducing にします。",
+                        keyPhrases: ["be interested in ~ (〜に興味がある)"]
+                    }
+                ],
+                q3: [
+                    {
+                        passage: "Our school will hold a cleaning event next Saturday.\n① I went to the local beach three times to pick up trash.\n② Participate in the event together.\nSmall actions can change our town into a better place.",
+                        advice1: "①は、「私はこれまでに3回地元の海岸に行ったことがある（経験）」という意味になるように、現在完了形（have been to ... three times）と重要連語（pick up）を使った英文に書き直しなさい。",
+                        correctAnswer1: "I have been to the local beach three times to pick up trash.",
+                        explanation1: "過去の経験を表すため、have been to ...（〜へ行ったことがある）を用います。連語 pick up trash（ゴミを拾う）はそのまま続けます。",
+                        advice2: "②は、命令するのではなく、「私たちはそのイベントに参加すべきだと自分は考えている（I think we should ... など）」という提案の文に修正してください。",
+                        correctAnswer2: "I think we should participate in the event together.",
+                        explanation2: "命令文 Participate in ...（〜に参加しなさい）を、「〜すべきだと思う」という柔らかい意見の形（I think we should + 動詞の原形）に書き換えます。"
+                    }
+                ]
+            },
+            {
+                id: "sample-2",
+                title: "【基礎・復習】不定詞・動名詞・比較表現セット（中1〜中2向け）",
+                isCustom: false,
+                q1: [
+                    {
+                        id: 1,
+                        situation: "将来の夢についての会話",
+                        dialogue: [
+                            "Yuji: What do you want to be in the future?",
+                            "Daiki: I want (   ) a science teacher."
+                        ],
+                        options: ["ア be", "イ to be", "ウ being", "エ was"],
+                        correctIndex: 1,
+                        explanation: "<want + to + 動詞の原形>で「〜になりたい」という意味を表す不定詞（名詞的用法）です。",
+                        keyPhrases: ["want to be ~ (〜になりたい)", "in the future (将来)"]
+                    },
+                    {
+                        id: 2,
+                        situation: "都市の大きさを比べる会話",
+                        dialogue: [
+                            "Emi: Tokyo is much (   ) than Kyoto.",
+                            "Paul: Yes, but Kyoto has a lot of traditional places!"
+                        ],
+                        options: ["ア big", "イ bigger", "ウ biggest", "エ the biggest"],
+                        correctIndex: 1,
+                        explanation: "than（〜よりも）があるため、比較級の bigger を用います。big の比較級は g を重ねて bigger にします。",
+                        keyPhrases: ["a lot of ~ (たくさんの〜)"]
+                    },
+                    {
+                        id: 3,
+                        situation: "宿題を手伝ってもらった時",
+                        dialogue: [
+                            "Mai: Thank you for (   ) me with my English homework.",
+                            "Ken: You're welcome! Anytime."
+                        ],
+                        options: ["ア help", "イ helping", "ウ to help", "エ helped"],
+                        correctIndex: 1,
+                        explanation: "前置詞 for の直後には動詞の -ing 形（動名詞）が続きます。",
+                        keyPhrases: ["thank you for ~ (〜をありがとう)", "help A with B (AのBを手伝う)"]
+                    },
+                    {
+                        id: 4,
+                        situation: "友達との約束",
+                        dialogue: [
+                            "Sora: We are looking forward to (   ) you at the party.",
+                            "Rin: Me too! I can't wait."
+                        ],
+                        options: ["ア see", "イ seeing", "ウ to see", "エ saw"],
+                        correctIndex: 1,
+                        explanation: "<look forward to + -ing>（〜を楽しみに待つ）の重要連語表現です。to の後ろは動名詞 seeing になります。",
+                        keyPhrases: ["look forward to ~ing (〜するのを楽しみに待つ)"]
+                    }
+                ],
+                q2: [
+                    {
+                        id: 1,
+                        situation: "趣味の話",
+                        dialogue: [
+                            "Taro: My sister enjoys ( play ) the piano every evening.",
+                            "Hanako: She must be very good at it!"
+                        ],
+                        promptWord: "play",
+                        correctAnswer: "playing",
+                        explanation: "動詞 enjoy の目的語には不定詞ではなく動名詞 (-ing) が続きます。",
+                        keyPhrases: ["enjoy ~ing (〜することを楽しむ)"]
+                    },
+                    {
+                        id: 2,
+                        situation: "部活動での目標",
+                        dialogue: [
+                            "Keiko: We tried hard ( win ) the match yesterday.",
+                            "Tom: You all played wonderfully!"
+                        ],
+                        promptWord: "win",
+                        correctAnswer: "to win",
+                        explanation: "<try + to + 動詞の原形>（〜しようと努力する・試みる）の不定詞構文です。",
+                        keyPhrases: ["try to ~ (〜しようと試みる)"]
+                    },
+                    {
+                        id: 3,
+                        situation: "季節の比較",
+                        dialogue: [
+                            "Saki: Summer is hotter ( than ) spring.",
+                            "Jun: That's true, but I like summer because of vacation!"
+                        ],
+                        promptWord: "than",
+                        correctAnswer: "than",
+                        explanation: "比較級 hotter（より暑い）に続ける比較の接続詞 than（〜よりも）が入ります。",
+                        keyPhrases: ["because of ~ (〜のために・〜の理由で)"]
+                    },
+                    {
+                        id: 4,
+                        situation: "自己紹介",
+                        dialogue: [
+                            "Misa: I am good at ( cook ) Japanese food.",
+                            "Ken: Wow, please make some for us next time!"
+                        ],
+                        promptWord: "cook",
+                        correctAnswer: "cooking",
+                        explanation: "<be good at + -ing>（〜が得意だ）の連語表現です。",
+                        keyPhrases: ["be good at ~ (〜が得意だ)"]
+                    }
+                ],
+                q3: [
+                    {
+                        passage: "I love animals very much.\n① I want become a vet in the future.\n② Playing with dogs is fun for me.\nI will study hard to achieve my dream.",
+                        advice1: "①の英文で動詞 want のあとに不足している語（不定詞をつくる語）を補って、正しい英文にしなさい。",
+                        correctAnswer1: "I want to become a vet in the future.",
+                        explanation1: "want の後ろには <to + 動詞の原形> を置くため to を補います。",
+                        advice2: "②を <It is + 形容詞 + to ...> の構文（私にとって犬と遊ぶことは楽しい）を使って書き直しなさい。",
+                        correctAnswer2: "It is fun for me to play with dogs.",
+                        explanation2: "It is fun for me to play with dogs. と形式主語構文へ変形させます。"
+                    }
+                ]
+            },
+            {
+                id: "sample-3",
+                title: "【応用・高校入試】受動態・分詞構文・It is to構文セット（中3向け）",
+                isCustom: false,
+                q1: [
+                    {
+                        id: 1,
+                        situation: "音楽についての会話",
+                        dialogue: [
+                            "Kaito: This song was (   ) by a famous Japanese musician last year.",
+                            "Yuka: Ah, I know this song! It's very beautiful."
+                        ],
+                        options: ["ア write", "イ wrote", "ウ written", "エ writing"],
+                        correctIndex: 2,
+                        explanation: "受動態<be動詞 + 過去分詞>（〜によって書かれた）の文です。write の過去分詞形 written が入ります。",
+                        keyPhrases: ["be written by ~ (〜によって書かれる)"]
+                    },
+                    {
+                        id: 2,
+                        situation: "公園での風景",
+                        dialogue: [
+                            "Ken: Look at the girl (   ) under that big tree.",
+                            "Maya: That's my sister, Lisa! She loves reading."
+                        ],
+                        options: ["ア read", "イ reading", "ウ reads", "エ to read"],
+                        correctIndex: 1,
+                        explanation: "名詞 the girl を後ろから修飾する現在分詞（〜している…）です。reading（読書をしている少女）にします。",
+                        keyPhrases: ["look at ~ (〜を見る)"]
+                    },
+                    {
+                        id: 3,
+                        situation: "環境問題について",
+                        dialogue: [
+                            "Teacher: It is necessary for us (   ) our natural resources.",
+                            "Student: We should reduce energy consumption in daily life."
+                        ],
+                        options: ["ア protect", "イ to protect", "ウ protecting", "エ protected"],
+                        correctIndex: 1,
+                        explanation: "<It is + 形容詞 + for 人 + to + 動詞の原形>（人にとって〜することは必要だ）の構文です。",
+                        keyPhrases: ["in daily life (日常生活の中で)"]
+                    },
+                    {
+                        id: 4,
+                        situation: "テスト前の準備",
+                        dialogue: [
+                            "Riku: I ran (   ) of time during the English exam.",
+                            "Sora: Don't worry! Practice more next time."
+                        ],
+                        options: ["ア out", "イ away", "ウ off", "エ in"],
+                        correctIndex: 0,
+                        explanation: "<run out of ~>（〜を使い果たす、切れさせる）という重要表現です。",
+                        keyPhrases: ["run out of ~ (〜を使い果たす)"]
+                    }
+                ],
+                q2: [
+                    {
+                        id: 1,
+                        situation: "歴史的な建物について",
+                        dialogue: [
+                            "Guide: This wooden temple was ( build ) hundreds of years ago.",
+                            "Tourist: Amazing! It is so well preserved."
+                        ],
+                        promptWord: "build",
+                        correctAnswer: "built",
+                        explanation: "受動態（〜によって建てられた）にするため、build の過去分詞形 built を用います。",
+                        keyPhrases: ["hundreds of ~ (何百もの〜)"]
+                    },
+                    {
+                        id: 2,
+                        situation: "人の紹介",
+                        dialogue: [
+                            "Shin: Do you know the boy ( call ) Jack?",
+                            "Ren: Yes, he is an exchange student from Canada."
+                        ],
+                        promptWord: "call",
+                        correctAnswer: "called",
+                        explanation: "名詞 the boy を修飾する過去分詞（〜と呼ばれる）です。called に変えます。",
+                        keyPhrases: ["an exchange student (交換留学生)"]
+                    },
+                    {
+                        id: 3,
+                        situation: "通学時間の話",
+                        dialogue: [
+                            "Mika: It takes thirty minutes ( walk ) to my high school.",
+                            "Yumi: That's good exercise every morning!"
+                        ],
+                        promptWord: "walk",
+                        correctAnswer: "to walk",
+                        explanation: "<It takes + 時間 + to + 動詞の原形>（〜するのに時間がかかる）の構文です。",
+                        keyPhrases: ["take time to ~ (〜するのに時間がかかる)"]
+                    },
+                    {
+                        id: 4,
+                        situation: "図書館での学習",
+                        dialogue: [
+                            "Kota: She kept ( study ) until the library closed.",
+                            "Ema: She is really a hard worker!"
+                        ],
+                        promptWord: "study",
+                        correctAnswer: "studying",
+                        explanation: "<keep + -ing>（〜し続ける）の連語です。",
+                        keyPhrases: ["keep -ing (〜し続ける)"]
+                    }
+                ],
+                q3: [
+                    {
+                        passage: "Plastic pollution is a big global issue.\n① People throw away many bottles every day.\n② We must take action now.\nRecycling is important for our future.",
+                        advice1: "①の英文を、「多くのボトルが毎日人々によって捨てられている」という受動態（be thrown away by ...）の英文に書き直しなさい。",
+                        correctAnswer1: "Many bottles are thrown away by people every day.",
+                        explanation1: "主語を Many bottles にし、受動態 <are + thrown away + by people> にします。",
+                        advice2: "②を「私たちにとって今すぐ行動を起こすことが重要だ」という意味の <It is important for us to ...> 構文に書き直しなさい。",
+                        correctAnswer2: "It is important for us to take action now.",
+                        explanation2: "It is important for us to take action now. と書き換えます。"
+                    }
+                ]
+            }
+        ];
+
+        let currentTestList = [];
+        let activeTestIndex = 0;
+        let isGraded = false;
+
+        window.onload = function() {
+            initTestsData();
+            populateTestSelector();
+            renderQuiz();
+        };
+
+        function initTestsData() {
+            let savedCustomTests = [];
+            try {
+                const stored = localStorage.getItem('jhs_english_custom_tests');
+                if (stored) {
+                    savedCustomTests = JSON.parse(stored);
+                }
+            } catch (e) {
+                console.error("Failed to load custom tests from LocalStorage", e);
+            }
+            currentTestList = [...sampleTests, ...savedCustomTests];
+        }
+
+        function saveCustomTestsToStorage() {
+            try {
+                const customOnly = currentTestList.filter(t => t.isCustom);
+                localStorage.setItem('jhs_english_custom_tests', JSON.stringify(customOnly));
+            } catch (e) {
+                console.error("Failed to save custom tests to LocalStorage", e);
+            }
+        }
+
+        function switchTab(tabName) {
+            ['quiz', 'generate', 'tutor'].forEach(tab => {
+                const view = document.getElementById(`view-${tab}`);
+                const btn = document.getElementById(`tab-btn-${tab}`);
+                if (tab === tabName) {
+                    view.classList.remove('hidden');
+                    btn.className = "px-3.5 py-2 rounded-lg font-bold transition flex items-center gap-2 bg-white text-sky-700 shadow-sm";
+                } else {
+                    view.classList.add('hidden');
+                    btn.className = "px-3.5 py-2 rounded-lg font-bold transition flex items-center gap-2 text-white hover:bg-white/10";
+                }
+            });
+        }
+
+        function populateTestSelector() {
+            const selector = document.getElementById('test-selector');
+            selector.innerHTML = '';
+
+            const presetGroup = document.createElement('optgroup');
+            presetGroup.label = "📚 標準問題セット";
+
+            const customGroup = document.createElement('optgroup');
+            customGroup.label = "✨ あなたが作ったAIオリジナル問題";
+
+            currentTestList.forEach((test, idx) => {
+                const opt = document.createElement('option');
+                opt.value = idx;
+                opt.textContent = test.title;
+
+                if (test.isCustom) {
+                    customGroup.appendChild(opt);
+                } else {
+                    presetGroup.appendChild(opt);
+                }
+            });
+
+            if (presetGroup.children.length > 0) selector.appendChild(presetGroup);
+            if (customGroup.children.length > 0) selector.appendChild(customGroup);
+
+            if (activeTestIndex >= currentTestList.length) {
+                activeTestIndex = 0;
+            }
+            selector.value = activeTestIndex;
+
+            const deleteBtn = document.getElementById('delete-test-btn');
+            const activeTest = currentTestList[activeTestIndex];
+            if (activeTest && activeTest.isCustom) {
+                deleteBtn.classList.remove('hidden');
+            } else {
+                deleteBtn.classList.add('hidden');
+            }
+        }
+
+        function loadSelectedTest() {
+            const selector = document.getElementById('test-selector');
+            activeTestIndex = parseInt(selector.value, 10);
+            
+            const deleteBtn = document.getElementById('delete-test-btn');
+            const activeTest = currentTestList[activeTestIndex];
+            if (activeTest && activeTest.isCustom) {
+                deleteBtn.classList.remove('hidden');
+            } else {
+                deleteBtn.classList.add('hidden');
+            }
+
+            resetCurrentQuiz();
+        }
+
+        function deleteCurrentTest() {
+            const activeTest = currentTestList[activeTestIndex];
+            if (!activeTest || !activeTest.isCustom) return;
+
+            if (confirm(`「${activeTest.title}」を削除してもよろしいですか？`)) {
+                currentTestList.splice(activeTestIndex, 1);
+                saveCustomTestsToStorage();
+                activeTestIndex = 0;
+                populateTestSelector();
+                resetCurrentQuiz();
+                showToast('テストを削除しました', 'info');
+            }
+        }
+
+        function resetCurrentQuiz() {
+            isGraded = false;
+            document.getElementById('score-badge').classList.add('hidden');
+            document.getElementById('submit-quiz-btn').classList.remove('hidden');
+            renderQuiz();
+        }
+
+        function renderQuiz() {
+            const container = document.getElementById('quiz-container');
+            const test = currentTestList[activeTestIndex];
+            if (!test) return;
+
+            let html = '';
+
+            // Title Banner
+            html += `
+                <div class="bg-gradient-to-r from-sky-50 to-indigo-50 border border-sky-100 p-6 rounded-2xl">
+                    <div class="flex items-center justify-between gap-2">
+                        <h2 class="text-lg md:text-xl font-bold text-sky-900 flex items-center gap-2">
+                            <i class="fa-solid fa-file-pen text-sky-600"></i> ${escapeHtml(test.title)}
+                        </h2>
+                        ${test.isCustom ? `<span class="bg-amber-100 text-amber-800 text-xs px-2.5 py-1 rounded-full font-bold flex-shrink-0"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>AI作成</span>` : ''}
+                    </div>
+                    <p class="text-xs md:text-sm text-sky-700 mt-1 font-medium">問題1（4点）＋ 問題2（4点）＋ 問題3（2点）＝ 全10点満点</p>
+                </div>
+            `;
+
+            // 【問1】
+            html += `
+                <div class="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+                    <div class="border-b border-slate-100 pb-4">
+                        <h3 class="font-bold text-slate-800 text-base md:text-lg flex items-start md:items-center gap-2.5">
+                            <span class="bg-sky-600 text-white px-2.5 py-0.5 rounded-lg text-sm flex-shrink-0 mt-0.5 md:mt-0">問1</span>
+                            次の (1)〜(4) の (   ) に入れるのに最も適切なものを、ア〜エの中から1つ選びなさい。（各1点）
+                        </h3>
+                    </div>
+            `;
+
+            test.q1.forEach((q, idx) => {
+                html += `
+                    <div class="bg-slate-50 p-5 rounded-xl space-y-4" id="q1-block-${idx}">
+                        <div class="flex items-center justify-between text-xs md:text-sm text-slate-600 font-bold">
+                            <span>(${idx + 1}) &lt;${escapeHtml(q.situation)}&gt;</span>
+                            <span id="q1-result-${idx}" class="text-base font-bold"></span>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 font-mono text-sm md:text-base space-y-2 leading-relaxed">
+                            ${q.dialogue.map(d => `<p class="font-sans">${escapeHtml(d)}</p>`).join('')}
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-sm md:text-base">
+                            ${q.options.map((opt, oIdx) => `
+                                <label class="cursor-pointer bg-white border border-slate-300 hover:border-sky-500 hover:bg-sky-50/50 p-3 rounded-xl transition flex items-center gap-2.5 text-slate-800 font-medium shadow-sm">
+                                    <input type="radio" name="q1-${idx}" value="${oIdx}" class="w-4 h-4 text-sky-600 focus:ring-sky-500" ${isGraded ? 'disabled' : ''}>
+                                    <span>${escapeHtml(opt)}</span>
+                                </label>
+                            `).join('')}
+                        </div>
+                        <div id="q1-exp-${idx}" class="hidden mt-3 p-4 bg-blue-50 border border-blue-200 rounded-xl text-xs md:text-sm space-y-2">
+                            <p class="font-bold text-blue-900"><i class="fa-solid fa-lightbulb text-amber-500 mr-1.5"></i>解説:</p>
+                            <p class="text-slate-700 leading-relaxed">${escapeHtml(q.explanation)}</p>
+                            ${q.keyPhrases ? `<p class="text-sky-800 font-bold mt-2">【重要連語】 ${q.keyPhrases.map(escapeHtml).join(' / ')}</p>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+            html += `</div>`;
+
+            // 【問2】
+            html += `
+                <div class="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+                    <div class="border-b border-slate-100 pb-4">
+                        <h3 class="font-bold text-slate-800 text-base md:text-lg flex items-start md:items-center gap-2.5">
+                            <span class="bg-sky-600 text-white px-2.5 py-0.5 rounded-lg text-sm flex-shrink-0 mt-0.5 md:mt-0">問2</span>
+                            次の (1)〜(4) の対話が成り立つように、(   ) 内の語を適切な形に変えたり補ったりしなさい。（各1点）
+                        </h3>
+                    </div>
+            `;
+            test.q2.forEach((q, idx) => {
+                html += `
+                    <div class="bg-slate-50 p-5 rounded-xl space-y-4" id="q2-block-${idx}">
+                        <div class="flex items-center justify-between text-xs md:text-sm text-slate-600 font-bold">
+                            <span>(${idx + 1}) &lt;${escapeHtml(q.situation)}&gt;</span>
+                            <span id="q2-result-${idx}" class="text-base font-bold"></span>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 font-mono text-sm md:text-base space-y-2 leading-relaxed">
+                            ${q.dialogue.map(d => `<p class="font-sans">${escapeHtml(d)}</p>`).join('')}
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3 pt-1">
+                            <span class="text-xs md:text-sm font-bold text-slate-700">解答入力:</span>
+                            <input type="text" id="q2-input-${idx}" placeholder="適切な語を入力..." class="bg-white border border-slate-300 rounded-xl px-4 py-2 text-sm md:text-base w-64 focus:ring-2 focus:ring-sky-500 outline-none font-mono" ${isGraded ? 'disabled' : ''}>
+                        </div>
+                        <div id="q2-exp-${idx}" class="hidden mt-3 p-4 bg-blue-50 border border-blue-200 rounded-xl text-xs md:text-sm space-y-2">
+                            <p class="font-bold text-blue-900"><i class="fa-solid fa-lightbulb text-amber-500 mr-1.5"></i>模範解答: <span class="text-emerald-700 font-mono font-bold text-sm md:text-base">${escapeHtml(q.correctAnswer)}</span></p>
+                            <p class="text-slate-700 leading-relaxed">${escapeHtml(q.explanation)}</p>
+                            ${q.keyPhrases ? `<p class="text-sky-800 font-bold mt-2">【重要連語】 ${q.keyPhrases.map(escapeHtml).join(' / ')}</p>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+            html += `</div>`;
+
+            // 【問3】
+            const q3 = test.q3 ? test.q3[0] : null;
+            if (q3) {
+                html += `
+                    <div class="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+                        <div class="border-b border-slate-100 pb-4">
+                            <h3 class="font-bold text-slate-800 text-base md:text-lg flex items-start md:items-center gap-2.5">
+                                <span class="bg-sky-600 text-white px-2.5 py-0.5 rounded-lg text-sm flex-shrink-0 mt-0.5 md:mt-0">問3</span>
+                                意見文の下書きとアドバイスを読み、指定された通りに ①・② の英文を書き直しなさい。（各1点）
+                            </h3>
+                        </div>
+
+                        <div class="bg-amber-50/70 border border-amber-200 p-5 rounded-2xl space-y-2">
+                            <p class="text-xs md:text-sm font-bold text-amber-900"><i class="fa-solid fa-quote-left mr-1.5"></i>意見文の下書き</p>
+                            <pre class="bg-white p-4 rounded-xl border border-amber-200/80 text-sm md:text-base text-slate-800 font-sans leading-relaxed whitespace-pre-wrap">${escapeHtml(q3.passage)}</pre>
+                        </div>
+
+                        <!-- Subquestion 1 -->
+                        <div class="bg-slate-50 p-5 rounded-xl space-y-4" id="q3-block-0">
+                            <div class="flex items-center justify-between text-xs md:text-sm text-slate-700 font-bold">
+                                <span>① の書き換え</span>
+                                <span id="q3-result-0" class="text-base font-bold"></span>
+                            </div>
+                            <p class="text-xs md:text-sm text-slate-800 bg-white p-3.5 rounded-xl border border-slate-200 leading-relaxed"><strong>アドバイス①：</strong> ${escapeHtml(q3.advice1)}</p>
+                            <input type="text" id="q3-input-0" placeholder="書き換えた英文を入力..." class="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm md:text-base font-mono focus:ring-2 focus:ring-sky-500 outline-none" ${isGraded ? 'disabled' : ''}>
+                            <div id="q3-exp-0" class="hidden p-4 bg-blue-50 border border-blue-200 rounded-xl text-xs md:text-sm space-y-2">
+                                <p class="font-bold text-blue-900"><i class="fa-solid fa-lightbulb text-amber-500 mr-1.5"></i>解答例: <span class="text-emerald-700 font-mono font-bold text-sm md:text-base">${escapeHtml(q3.correctAnswer1)}</span></p>
+                                <p class="text-slate-700 leading-relaxed">${escapeHtml(q3.explanation1)}</p>
+                            </div>
+                        </div>
+
+                        <!-- Subquestion 2 -->
+                        <div class="bg-slate-50 p-5 rounded-xl space-y-4" id="q3-block-1">
+                            <div class="flex items-center justify-between text-xs md:text-sm text-slate-700 font-bold">
+                                <span>② の書き換え</span>
+                                <span id="q3-result-1" class="text-base font-bold"></span>
+                            </div>
+                            <p class="text-xs md:text-sm text-slate-800 bg-white p-3.5 rounded-xl border border-slate-200 leading-relaxed"><strong>アドバイス②：</strong> ${escapeHtml(q3.advice2)}</p>
+                            <input type="text" id="q3-input-1" placeholder="書き換えた英文を入力..." class="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm md:text-base font-mono focus:ring-2 focus:ring-sky-500 outline-none" ${isGraded ? 'disabled' : ''}>
+                            <div id="q3-exp-1" class="hidden p-4 bg-blue-50 border border-blue-200 rounded-xl text-xs md:text-sm space-y-2">
+                                <p class="font-bold text-blue-900"><i class="fa-solid fa-lightbulb text-amber-500 mr-1.5"></i>解答例: <span class="text-emerald-700 font-mono font-bold text-sm md:text-base">${escapeHtml(q3.correctAnswer2)}</span></p>
+                                <p class="text-slate-700 leading-relaxed">${escapeHtml(q3.explanation2)}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html;
+        }
+
+        function gradeQuiz() {
+            if (isGraded) return;
+            isGraded = true;
+
+            const test = currentTestList[activeTestIndex];
+            if (!test) return;
+
+            let totalScore = 0;
+
+            // Grade Q1 (Multiple choice - 4 points)
+            test.q1.forEach((q, idx) => {
+                const selected = document.querySelector(`input[name="q1-${idx}"]:checked`);
+                const resSpan = document.getElementById(`q1-result-${idx}`);
+                const expBlock = document.getElementById(`q1-exp-${idx}`);
+                expBlock.classList.remove('hidden');
+
+                if (selected && parseInt(selected.value, 10) === q.correctIndex) {
+                    totalScore += 1;
+                    resSpan.className = "text-emerald-600 font-bold";
+                    resSpan.innerHTML = '<i class="fa-solid fa-circle-check"></i> 正解！(+1点)';
+                } else {
+                    resSpan.className = "text-rose-600 font-bold";
+                    resSpan.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> 不正解（正解: ${escapeHtml(q.options[q.correctIndex])}）`;
+                }
+            });
+
+            // Grade Q2 (Text input - 4 points)
+            test.q2.forEach((q, idx) => {
+                const inputVal = (document.getElementById(`q2-input-${idx}`).value || '').trim().toLowerCase();
+                const targetVal = q.correctAnswer.trim().toLowerCase();
+                const resSpan = document.getElementById(`q2-result-${idx}`);
+                const expBlock = document.getElementById(`q2-exp-${idx}`);
+                expBlock.classList.remove('hidden');
+
+                if (inputVal === targetVal) {
+                    totalScore += 1;
+                    resSpan.className = "text-emerald-600 font-bold";
+                    resSpan.innerHTML = '<i class="fa-solid fa-circle-check"></i> 正解！(+1点)';
+                } else {
+                    resSpan.className = "text-rose-600 font-bold";
+                    resSpan.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> 不正解`;
+                }
+            });
+
+            // Grade Q3 (Sentence rewrite - 2 points)
+            const q3 = test.q3 ? test.q3[0] : null;
+            if (q3) {
+                // Subquestion 1
+                const input1 = (document.getElementById('q3-input-0').value || '').trim().toLowerCase().replace(/[.,!]/g, '');
+                const target1 = q3.correctAnswer1.trim().toLowerCase().replace(/[.,!]/g, '');
+                const resSpan1 = document.getElementById('q3-result-0');
+                document.getElementById('q3-exp-0').classList.remove('hidden');
+
+                if (input1 === target1 || (input1.length > 5 && target1.includes(input1.slice(0, 10)))) {
+                    totalScore += 1;
+                    resSpan1.className = "text-emerald-600 font-bold";
+                    resSpan1.innerHTML = '<i class="fa-solid fa-circle-check"></i> 正解！(+1点)';
+                } else {
+                    resSpan1.className = "text-rose-600 font-bold";
+                    resSpan1.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> 不正解`;
+                }
+
+                // Subquestion 2
+                const input2 = (document.getElementById('q3-input-1').value || '').trim().toLowerCase().replace(/[.,!]/g, '');
+                const target2 = q3.correctAnswer2.trim().toLowerCase().replace(/[.,!]/g, '');
+                const resSpan2 = document.getElementById('q3-result-1');
+                document.getElementById('q3-exp-1').classList.remove('hidden');
+
+                if (input2 === target2 || (input2.length > 5 && target2.includes(input2.slice(0, 10)))) {
+                    totalScore += 1;
+                    resSpan2.className = "text-emerald-600 font-bold";
+                    resSpan2.innerHTML = '<i class="fa-solid fa-circle-check"></i> 正解！(+1点)';
+                } else {
+                    resSpan2.className = "text-rose-600 font-bold";
+                    resSpan2.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> 不正解`;
+                }
+            }
+
+            // Update UI Score Badge
+            document.getElementById('score-val').textContent = totalScore;
+            document.getElementById('score-badge').classList.remove('hidden');
+            
+            showToast(`採点が完了しました！ スコア: ${totalScore}/10点`, totalScore >= 7 ? 'success' : 'info');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        async function generateTestWithAI(event) {
+            event.preventDefault();
+
+            const grade = document.getElementById('gen-grade').value;
+            const focus = document.getElementById('gen-focus').value;
+            const custom = document.getElementById('gen-custom').value;
+
+            const genBtn = document.getElementById('gen-btn');
+            const genLoading = document.getElementById('gen-loading');
+
+            genBtn.classList.add('hidden');
+            genLoading.classList.remove('hidden');
+
+            const systemPrompt = `あなたは日本の中学校の英語教員です。中学校の指導要領（中1〜中3、特に現在完了形・熟語・比較・不定詞など）に則った高品質な英作文・対話文テストを【JSON形式】で作成してください。
+必ず下記のJSON構造だけを出力してください。余計な解説テキストやマークダウン装飾（\`\`\`json等）は一切含めないでください。
+
+JSON構造のフォーマット例:
+{
+  "title": "【AI生成】${focus} (${grade})",
+  "q1": [
+    {
+      "id": 1,
+      "situation": "場面",
+      "dialogue": ["Ken: ...", "Emi: ..."],
+      "options": ["ア option1", "イ option2", "ウ option3", "エ option4"],
+      "correctIndex": 0,
+      "explanation": "解説文",
+      "keyPhrases": ["重要連語1", "重要連語2"]
+    }
+  ],
+  "q2": [
+    {
+      "id": 1,
+      "situation": "場面",
+      "dialogue": ["A: ...", "B: ..."],
+      "promptWord": "原形",
+      "correctAnswer": "変化形",
+      "explanation": "解説文",
+      "keyPhrases": ["重要連語1"]
+    }
+  ],
+  "q3": [
+    {
+      "passage": "短い英文メッセージ...",
+      "advice1": "①のアドバイス",
+      "correctAnswer1": "①の模範解答英文",
+      "explanation1": "解説1",
+      "advice2": "②のアドバイス",
+      "correctAnswer2": "②の模範解答英文",
+      "explanation2": "解説2"
+    }
+  ]
+}
+※q1は4問、q2は4問、q3は1セット(2問)の合計10点満点構成にすること。`;
+
+            const userQuery = `対象レベル: ${grade}\n重点出題内容: ${focus}\n追加リクエスト: ${custom || 'なし'}\nこの条件で新しいテストを作成してください。`;
+
+            const apiKey = ""; // Canvas environment API Key
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                generationConfig: {
+                    responseMimeType: "application/json"
+                }
+            };
+
+            let resultData = null;
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    const jsonRes = await response.json();
+                    let rawText = jsonRes.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (rawText) {
+                        rawText = rawText.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/, '').trim();
+                        resultData = JSON.parse(rawText);
+                    }
+                }
+            } catch (e) {
+                console.warn('API Fetch Exception, using dynamic fallback logic:', e);
+            }
+
+            if (!resultData) {
+                resultData = createFallbackTest(grade, focus);
+            }
+
+            genBtn.classList.remove('hidden');
+            genLoading.classList.add('hidden');
+
+            if (resultData) {
+                resultData.id = `ai-gen-${Date.now()}`;
+                resultData.isCustom = true;
+                currentTestList.push(resultData);
+                saveCustomTestsToStorage();
+
+                activeTestIndex = currentTestList.length - 1;
+                populateTestSelector();
+                switchTab('quiz');
+                resetCurrentQuiz();
+                showToast('新しいAIオリジナル問題を作成・保存しました！', 'success');
+            } else {
+                showToast('問題の作成に失敗しました。', 'error');
+            }
+        }
+
+        function createFallbackTest(grade, focus) {
+            return {
+                title: `【AI生成】${focus}演習テスト (${grade})`,
+                q1: [
+                    {
+                        id: 1,
+                        situation: "空港での会話",
+                        dialogue: ["Tom: Have you ever (   ) to Kyoto?", "Ken: Yes, I went there last summer."],
+                        options: ["ア go", "イ gone", "ウ been", "エ went"],
+                        correctIndex: 2,
+                        explanation: "「〜に行ったことがある（経験）」を表すには have been to を用います。",
+                        keyPhrases: ["have been to ~ (〜に行ったことがある)"]
+                    },
+                    {
+                        id: 2,
+                        situation: "図書室での会話",
+                        dialogue: ["Ann: This book is as (   ) as that one.", "Ben: Really? I want to read both."],
+                        options: ["ア good", "イ better", "ウ best", "エ the best"],
+                        correctIndex: 0,
+                        explanation: "as ... as（〜と同じくらい…だ）の原級比較表現です。形容詞の原形 good が入ります。",
+                        keyPhrases: ["as ... as (〜と同じくらい…だ)"]
+                    },
+                    {
+                        id: 3,
+                        situation: "家での会話",
+                        dialogue: ["Mother: I asked you (   ) your room.", "Child: OK, I will do it now."],
+                        options: ["ア clean", "イ cleaning", "ウ to clean", "エ cleaned"],
+                        correctIndex: 2,
+                        explanation: "ask + 人 + to + 動詞の原形（人に〜するように頼む）の不定詞構文です。",
+                        keyPhrases: ["ask ~ to ... (〜に…するように頼む)"]
+                    },
+                    {
+                        id: 4,
+                        situation: "駅での会話",
+                        dialogue: ["Jack: What are you doing?", "Mary: I am (   ) for my ticket."],
+                        options: ["ア look", "イ looking", "ウ looked", "エ looks"],
+                        correctIndex: 1,
+                        explanation: "look for（〜を探す）の現在進行形 (be + -ing) です。",
+                        keyPhrases: ["look for ~ (〜を探す)"]
+                    }
+                ],
+                q2: [
+                    {
+                        id: 1,
+                        situation: "放課後の会話",
+                        dialogue: ["Yuki: I have already ( finish ) my homework.", "Taro: Great! Let's play soccer."],
+                        promptWord: "finish",
+                        correctAnswer: "finished",
+                        explanation: "現在完了形（完了）have + 過去分詞 の形にします。",
+                        keyPhrases: ["finish homework (宿題を終わらせる)"]
+                    },
+                    {
+                        id: 2,
+                        situation: "英語の授業",
+                        dialogue: ["Teacher: Is it important for us ( study ) English?", "Student: Yes, it is useful!"],
+                        promptWord: "study",
+                        correctAnswer: "to study",
+                        explanation: "It is ... for 人 to + 動詞の原形 構文です。",
+                        keyPhrases: ["It is ~ for ... to ... (人にとって…することは〜だ)"]
+                    },
+                    {
+                        id: 3,
+                        situation: "公園での会話",
+                        dialogue: ["Ken: She has ( live ) in Japan for three years.", "Risa: She speaks Japanese very well."],
+                        promptWord: "live",
+                        correctAnswer: "lived",
+                        explanation: "for three years（3年間）があるため現在完了形（継続）の過去分詞 lived です。",
+                        keyPhrases: ["live in ~ (〜に住んでいる)"]
+                    },
+                    {
+                        id: 4,
+                        situation: "クラブ活動",
+                        dialogue: ["Shin: Are you good at ( play ) basketball?", "Mai: Yes, I love it!"],
+                        promptWord: "play",
+                        correctAnswer: "playing",
+                        explanation: "前置詞 at の直後なので動名詞 (-ing) playing にします。",
+                        keyPhrases: ["be good at ~ (〜が得意だ)"]
+                    }
+                ],
+                q3: [
+                    {
+                        passage: "We have a school festival next month.\n① I visited Kyoto twice to see historic places.\n② Practice hard for the concert.\nWe hope everyone enjoys our performance.",
+                        advice1: "①を現在完了形（have visited ... twice）を使って過去の経験を表す文に直しなさい。",
+                        correctAnswer1: "I have visited Kyoto twice to see historic places.",
+                        explanation1: "過去の経験を表す have + 過去分詞 に書き換えます。",
+                        advice2: "②を命令文から「〜すべきだと思う (I think we should ...) 」という提案の文に書き直しなさい。",
+                        correctAnswer2: "I think we should practice hard for the concert.",
+                        explanation2: "I think we should + 動詞の原形 を用いて提案の形にします。"
+                    }
+                ]
+            };
+        }
+
+        async function sendChatMessage(e) {
+            e.preventDefault();
+            const input = document.getElementById('chat-input');
+            const msg = input.value.trim();
+            if (!msg) return;
+
+            appendUserMessage(msg);
+            input.value = '';
+
+            const loadingId = appendAiLoading();
+
+            const systemPrompt = "あなたは日本の中学生向けに英語を優しく、分かりやすく教えるAI英語チューター（先生）です。中学生の目線に合わせて、くだけた親しみやすい口調（〜だよ、〜だね！）で回答してください。短く簡潔に、例文や覚え方のコツも添えてあげてください。";
+            const apiKey = ""; // Canvas Environment API Key
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+            const payload = {
+                contents: [{ parts: [{ text: msg }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] }
+            };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (response.ok) {
+                    const resJson = await response.json();
+                    const aiText = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
+                    removeMessage(loadingId);
+                    if (aiText) {
+                        appendAiMessage(aiText);
+                    } else {
+                        appendAiMessage('ごめんね、うまく答えが見つからなかったよ。もう一度質問してみてね！');
+                    }
+                } else {
+                    removeMessage(loadingId);
+                    generateFallbackChatResponse(msg);
+                }
+            } catch (err) {
+                console.error('Chat API Error:', err);
+                removeMessage(loadingId);
+                generateFallbackChatResponse(msg);
+            }
+        }
+
+        function generateFallbackChatResponse(query) {
+            if (query.includes('現在完了') || query.includes('have')) {
+                appendAiMessage("現在完了形（have + 過去分詞）は大きく分けて3つの意味があるよ！\n\n1. 【継続】（ずっと〜している）\n例: I have lived in Tokyo for 3 years.\n2. 【経験】（〜したことがある）\n例: Have you ever visited Kyoto?\n3. 【完了・結果】（〜し終わった / 〜してしまった）\n例: I have just finished my homework!\n\nキーワード（for, since, ever, never, just, already）に注目するのがポイントだよ！");
+            } else if (query.includes('been') || query.includes('gone')) {
+                appendAiMessage("`have been to` と `have gone to` の違いだね！よくテストに出るよ！\n\n・`have been to ~`: 「〜へ行ったことがある」（行って戻ってきた体験）\n・`have gone to ~`: 「〜へ行ってしまった」（今ここにはいない）\n\n「行ってきたよ！」と言いたいときは `have been to` を使おう！");
+            } else if (query.includes('as') || query.includes('比較')) {
+                appendAiMessage("`as + 原形 + as` は「〜と同じくらい…だ」という意味になるよ！\n\n例: Ken is as tall as Mike.（ケンはマイクと同じくらい背が高い）\n\nas と as の間には、er や more をつけない「そのままの形（原形）」を入れるのがポイントだよ！");
+            } else {
+                appendAiMessage(`質問ありがとう！「${query}」についてだね。\n\n英語の学習では「主語＋動詞」の順番を意識することと、セットで覚える「重要連語（look for, ask to ..., satisfy with など）」を繰り返し声に出して覚えるのが一番の近道だよ！他にも聞きたい文法があったらどんどん教えてね！`);
+            }
+        }
+
+        function sendQuickQuestion(text) {
+            document.getElementById('chat-input').value = text;
+            sendChatMessage(new Event('submit'));
+        }
+
+        function appendUserMessage(text) {
+            const container = document.getElementById('chat-messages');
+            const div = document.createElement('div');
+            div.className = "flex gap-3 justify-end";
+            div.innerHTML = `
+                <div class="bg-indigo-600 text-white p-4 rounded-2xl rounded-tr-none max-w-[85%] border border-indigo-700 shadow-sm leading-relaxed">
+                    ${escapeHtml(text)}
+                </div>
+            `;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function appendAiMessage(text) {
+            const container = document.getElementById('chat-messages');
+            const div = document.createElement('div');
+            div.className = "flex gap-3";
+            div.innerHTML = `
+                <div class="w-9 h-9 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-sm flex-shrink-0">
+                    AI
+                </div>
+                <div class="bg-indigo-50 text-slate-800 p-4 rounded-2xl rounded-tl-none max-w-[85%] border border-indigo-100 leading-relaxed whitespace-pre-wrap">
+                    ${escapeHtml(text)}
+                </div>
+            `;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function appendAiLoading() {
+            const container = document.getElementById('chat-messages');
+            const id = 'loading-' + Date.now();
+            const div = document.createElement('div');
+            div.id = id;
+            div.className = "flex gap-3";
+            div.innerHTML = `
+                <div class="w-9 h-9 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-sm flex-shrink-0 animate-pulse">
+                    AI
+                </div>
+                <div class="bg-indigo-50 text-slate-600 p-4 rounded-2xl rounded-tl-none text-xs md:text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-spinner animate-spin"></i> 回答を考えています...
+                </div>
+            `;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+            return id;
+        }
+
+        function removeMessage(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-msg');
+            const toastIcon = document.getElementById('toast-icon');
+
+            toastMsg.textContent = message;
+            if (type === 'success') {
+                toastIcon.className = "fa-solid fa-circle-check text-emerald-400 text-base";
+            } else if (type === 'error') {
+                toastIcon.className = "fa-solid fa-circle-xmark text-rose-400 text-base";
+            } else {
+                toastIcon.className = "fa-solid fa-circle-info text-sky-400 text-base";
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
